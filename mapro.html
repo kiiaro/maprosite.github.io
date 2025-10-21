@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto MAPRO</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 80vh;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            max-width: 80%;
+            padding: 10px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .bot-message {
+            background-color: #e0f7fa;
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+
+        .user-message {
+            background-color: #f8bbd0;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+            color: #333;
+        }
+
+        .bot-avatar {
+            width: 30px;
+            height: 30px;
+            background-color: #00b0ff;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .message-wrapper {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .bot .message-wrapper {
+            justify-content: flex-start;
+        }
+
+        .user .message-wrapper {
+            justify-content: flex-end;
+        }
+
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .option-button {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .option-button.pink {
+            background-color: #e91e63;
+        }
+
+        .input-container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            padding: 10px;
+            background-color: #f5f5f5;
+            box-sizing: border-box;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-right: 10px;
+        }
+
+        #send-button {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .logo {
+            font-size: 48px;
+            color: #e91e63;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .ribbon {
+            font-size: 48px;
+            margin-left: 10px;
+        }
+
+        .info-box {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        .list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .list li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container" id="chat-container"></div>
+    <div class="input-container">
+        <input type="text" id="user-input" placeholder="Digite seu nome ou mensagem...">
+        <button id="send-button">Enviar</button>
+    </div>
+    <div class="logo">MAPRO <span class="ribbon">🎀</span></div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        let userName = '';
+        let currentState = 'intro';
+        let cancerType = '';
+
+        function addMessage(text, type = 'bot', options = [], infoBox = false) {
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('message-wrapper', type);
+
+            if (type === 'bot') {
+                const avatar = document.createElement('div');
+                avatar.classList.add('bot-avatar');
+                wrapper.appendChild(avatar);
+            }
+
+            const message = document.createElement('div');
+            message.classList.add('message', type === 'bot' ? 'bot-message' : 'user-message');
+            if (infoBox) {
+                message.classList.add('info-box');
+            }
+            message.innerHTML = text;
+            wrapper.appendChild(message);
+
+            if (options.length > 0) {
+                const optsDiv = document.createElement('div');
+                optsDiv.classList.add('options');
+                options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.classList.add('option-button');
+                    if (opt.class) btn.classList.add(opt.class);
+                    btn.textContent = opt.text;
+                    btn.onclick = opt.action;
+                    optsDiv.appendChild(btn);
+                });
+                message.appendChild(optsDiv);
+            }
+
+            chatContainer.appendChild(wrapper);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function handleUserInput() {
+            const text = userInput.value.trim();
+            if (!text) return;
+            addMessage(text, 'user');
+            userInput.value = '';
+
+            if (currentState === 'askName') {
+                userName = text;
+                addMessage(`Olá, ${userName}! 😊`);
+                currentState = 'askCancerType';
+                addMessage('Você deseja informações sobre:', 'bot', [
+                    { text: 'Câncer de Mama', action: () => chooseCancer('mama'), class: 'pink' },
+                    { text: 'Câncer de Próstata', action: () => chooseCancer('prostata'), class: 'pink' },
+                    { text: 'Sair', action: () => addMessage('Adeus!') }
+                ]);
+            }
+        }
+
+        function chooseCancer(type) {
+            cancerType = type;
+            addMessage(type === 'mama' ? 'Câncer de Mama' : 'Câncer de Próstata', 'user');
+            showMainOptions();
+        }
+
+        function showMainOptions() {
+            addMessage('Escolha uma das opções abaixo:', 'bot', [
+                { text: 'Tratamentos', action: showTratamentos },
+                { text: 'Sintomas', action: showSintomas },
+                { text: 'Prevenção', action: showPrevencao },
+                { text: 'Apoio emocional e suporte', action: showApoio },
+                { text: 'Novidades científicas', action: showNovidades },
+                { text: 'Exames', action: showExames },
+                { text: 'Voltar', action: () => currentState = 'askCancerType' }
+            ]);
+        }
+
+        function showNovidades() {
+            addMessage('Novidades científicas', 'user');
+            const text = `
+                Esses avanços estão melhorando a capacidade de detectar, tratar e personalizar o tratamento para pacientes com câncer de próstata, e as perspectivas para o futuro são promissoras, com a esperança de tratamentos mais eficazes.<br><br>
+                Novidades sobre o câncer de próstata:<br>
+                - Avanços nos testes de diagnóstico.<br>
+                - Terapias direcionadas e imunoterapia.<br>
+                - Radioterapia avançada.<br>
+                - Terapias hormonais e novas drogas.<br>
+                - Abordagens personalizadas e biomarcadores.<br>
+                - Estudos em genética e microbioma.
+            `;
+            addMessage(text, 'bot', [
+                { text: 'Avanços nos testes de diagnóstico', action: () => {} },
+                { text: 'Terapias direcionadas e imunoterapia', action: () => {} },
+                { text: 'Radioterapia avançada', action: () => {} }
+            ], true);
+            addBottomButtons();
+        }
+
+        function showSintomas() {
+            addMessage('Sintomas', 'user');
+            const text = `
+                - Dificuldade em urinar;<br>
+                - Aumento na frequência urinária;<br>
+                - Sensação de esvaziamento incompleto da bexiga, mesmo após urinar, ainda sente que a bexiga não está completamente vazia.<br>
+                - Sangue na urina;<br>
+                - Dor ou ardência ao urinar;<br>
+                - Dor nas costas, quadril ou perna;<br>
+                - Disfunção erétil;<br><br>
+                Se você está sentindo algum possível sintoma, procure um médico o mais rápido possível!
+            `;
+            addMessage(text, 'bot', [], true);
+            addBottomButtons();
+        }
+
+        function showPrevencao() {
+            addMessage('Prevenção', 'user');
+            const text = `
+                Alguns hábitos de prevenção sobre o câncer de próstata são:<br>
+                1- Ter uma alimentação saudável.<br>
+                2- Praticar atividade física regularmente.<br>
+                3- Manter o peso corporal adequado.<br>
+                4- Não fumar.<br>
+                5- Evitar o consumo de bebidas alcoólicas.<br>
+                Consulte seu médico regularmente.
+            `;
+            addMessage(text, 'bot', [], true);
+            addBottomButtons();
+        }
+
+        function showTratamentos() {
+            addMessage('Tratamentos', 'user');
+            const text = `
+                Seja bem vindo(a), Sou o bot de assistência sobre tratamentos do câncer de próstata.<br><br>
+                Os tipos de tratamentos do câncer de próstata são:<br>
+                1- Cirurgia (Prostatectomia radical)<br>
+                2- Radioterapia<br>
+                3- Observação vigilante<br>
+                4- Hormonioterapia<br>
+                5- Quimioterapia<br>
+                6- Radiofármacos<br><br>
+                Tem mais alguma dúvida?
+            `;
+            addMessage(text, 'bot', [
+                { text: 'Mais informações sobre os tratamentos', action: () => {} },
+                { text: 'Voltar ao início', action: showMainOptions },
+                { text: 'Finalizar', action: () => {} }
+            ], true);
+            addBottomButtons();
+        }
+
+        function showApoio() {
+            addMessage('Apoio emocional e suporte', 'user');
+            const text = `
+                Olá, ! Sou o Raimundo. Estou aqui para te dar o apoio e te acompanhar na sua jornada de bem-estar.<br><br>
+                responda abaixo:
+            `;
+            addMessage(text, 'bot', [
+                { text: 'Não diagnosticado', action: () => {} },
+                { text: 'Diagnosticado', action: () => {} }
+            ], true);
+            addBottomButtons();
+        }
+
+        function showExames() {
+            addMessage('Exames', 'user');
+            const text = `
+                Os exames regulares vão determinar se há um tumor, seu tipo e a agressividade, impactando diretamente a escolha do tratamento.<br><br>
+                E determinar quais são as opções de tratamento. O ideal é sempre descobrir a doença ainda no estágio inicial, quando esta restrita à próstata, 
+                dando chance a perspectiva de cura do paciente, com radioterapia ou cirurgia.<br><br>
+                Exames utilizados:<br>
+                1-Toque Retal<br>
+                2-PSA<br>
+                3-Ultrassonografia de próstata<br>
+                4-Biópsia<br>
+                5-Tomografia computadorizada<br>
+                6-Ressonância magnética
+            `;
+            addMessage(text, 'bot', [], true);
+            addBottomButtons();
+        }
+
+        function addBottomButtons() {
+            const buttons = document.createElement('div');
+            buttons.classList.add('options');
+            ['Voltar', 'Compartilhar', 'Avaliar', 'Sair'].forEach(txt => {
+                const btn = document.createElement('button');
+                btn.classList.add('option-button');
+                btn.textContent = txt;
+                btn.onclick = () => {
+                    if (txt === 'Voltar') showMainOptions();
+                };
+                buttons.appendChild(btn);
+            });
+            chatContainer.appendChild(buttons);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Initial messages
+        addMessage('Somos o Projeto MAPRO, um canal de assistência sobre câncer de mama e câncer de próstata.');
+        addMessage('Temos diversas informações para te ajudar a entender melhor sobre o assunto.');
+        addMessage('Para um melhor atendimento, gostaríamos de saber o seu nome:');
+        currentState = 'askName';
+
+        sendButton.onclick = handleUserInput;
+        userInput.onkeypress = e => { if (e.key === 'Enter') handleUserInput(); };
+    </script>
+</body>
+</html>
